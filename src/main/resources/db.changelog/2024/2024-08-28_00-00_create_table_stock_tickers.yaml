@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: 3
+      author: sterkhovkv
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: stock_tickers
+      changes:
+        - createTable:
+            tableName: stock_tickers
+            columns:
+              - column:
+                  name: id
+                  type: INTEGER
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: ticker
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: shortname
+                  type: TEXT
+                  constraints:
+                    nullable: true
+              - column:
+                  name: custom_weight
+                  type: DOUBLE
+                  defaultValue: 1.00
+              - column:
+                  name: weight_imoex
+                  type: DOUBLE
+                  defaultValue: 0
+              - column:
+                  name: weight_moex10
+                  type: DOUBLE
+                  defaultValue: 0
+              - column:
+                  name: lotsize
+                  type: INTEGER
+                  defaultValue: 1
+              - column:
+                  name: price
+                  type: DOUBLE
+              - column:
+                  name: count_in_portfolio
+                  type: INTEGER
+                  defaultValue: 0
+                  constraints:
+                    minValue: 0
+      rollback:
+        - dropTable:
+            tableName: stock_tickers

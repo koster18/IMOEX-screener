@@ -1,0 +1,32 @@
+services:
+  imoex-screener-db:
+    container_name: imoex-screener-db
+    image: "postgres:9.6"
+    restart: always
+    ports:
+      - "5440:5440"
+    environment:
+      POSTGRES_DB: imoex-screener-db
+      POSTGRES_USER: imoex-screener-db-user
+      POSTGRES_PASSWORD: investor
+    command: ["postgres", "-c", "port=5440"]
+    volumes:
+      - imoex-screener-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -h localhost -p 5440 -U imoex-screener-db-user -d imoex-screener-db" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  imoex-screener:
+    build: .
+    container_name: imoex-screener
+    image: imoex-screener:latest
+    restart: always
+    ports:
+      - "8181:8181"
+    depends_on:
+      imoex-screener-db:
+        condition: service_healthy
+volumes:
+  imoex-screener-db-data:

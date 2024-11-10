@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Stocks</title>
+    <style>
+        .compliance {
+            transition: background-color 0.5s ease;
+        }
+        input {
+            width: 100px;
+            margin: 2px;
+            background-color: #faf0e6;
+        }
+        input[readonly] {
+            background-color: #f0f0f0;
+        }
+        .count-input {
+            border: 2px solid black;
+            border-radius: 4px;
+            padding: 1px;
+        }
+        .bold {
+            font-weight: bold;
+        }
+        .id-column {
+            width: 30px; /* Ширина для столбца ID */
+        }
+        .ticker-column {
+            width: 80px; /* Ширина для столбца Тикер */
+        }
+        .name-column {
+            width: 150px; /* Ширина для столбца Название */
+        }
+        .price-column {
+            width: 60px; /* Ширина для столбца Цена */
+        }
+        .purchased-column {
+            width: 80px; /* Ширина для столбца Куплено */
+        }
+        .lot-column {
+            width: 90px; /* Ширина для столбца Минимальный лот */
+        }
+        .weight-column {
+            width: 60px; /* Ширина для столбца Вес в индексе */
+        }
+        .to-buy-column {
+            width: 60px; /* Ширина для столбца Необходимо купить */
+        }
+        .to-buy-count {
+            width: 80px; /* Ширина для столбца Куплено */
+        }
+        .compliance-column {
+            width: 120px; /* Ширина для столбца Соответствие */
+        }
+    </style>
+
+</head>
+<body>
+<h2>Введите сумму для распределения</h2>
+<form action="#" th:action="@{/stocks}" method="post" th:object="${stockForm}">
+    <div>
+        <label for="money">Сумма денег:</label>
+        <input type="number" id="money" th:field="*{money}" step="1" required />
+        <label for="costInPortfolio">Стоимость портфеля:</label>
+        <input type="number" id="costInPortfolio" th:field="*{costInPortfolio}" step="1" required readonly/>
+    </div>
+    <button type="submit" name="action" value="save">Сохранить данные</button>
+    <button type="submit" name="action" value="update">Обновить Индексы</button>
+    <button type="submit" name="action" value="refresh_prices">Обновить цены</button>
+    <div>
+        <label for="newticker">Введи тикер акции для ручного добавления</label>
+        <input type="text" id="newticker" th:field="*{newTicker}" />
+        <button type="submit" name="action" value="add_ticker">Добавить тикер</button>
+    </div>
+    <div th:if="${errorMessage}" style="color: red;">
+        <p th:text="${errorMessage}"></p>
+    </div>
+    <h2>Список акций</h2>
+    <table border="1">
+        <thead>
+        <tr>
+            <th class="id-column">ID</th>
+            <th class="ticker-column bold">Тикер</th>
+            <th class="name-column bold">Название</th>
+            <th class="price-column bold">Цена</th>
+            <th class="lot-column">Минимальный лот</th>
+            <th class="purchased-column">Свой коэффициент</th>
+            <th class="purchased-column">Куплено в портфеле</th>
+            <th class="purchased-column">Куплено на сумму</th>
+
+            <th class="weight-column">Вес IMOEX</th>
+            <th class="to-buy-count">Необходимо купить</th>
+            <th class="to-buy-column">На сумму</th>
+            <th class="compliance-column">Соответствие</th>
+
+            <th class="weight-column">Вес MOEX10</th>
+            <th class="to-buy-count">Необходимо купить</th>
+            <th class="to-buy-column">На сумму</th>
+            <th class="compliance-column">Соответствие</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="stock, iterStat : ${stockForm.stocks}" data-index="${iterStat.index}">
+            <td class="id-column" th:text="${iterStat.index + 1}"></td>
+            <td>
+                <input type="text" class="ticker-column bold" th:field="*{stocks[__${iterStat.index}__].ticker}" readonly />
+            </td>
+            <td>
+                <input type="text" class="name-column bold" th:field="*{stocks[__${iterStat.index}__].shortname}" readonly />
+            </td>
+            <td>
+                <input type="number" class="price-column bold" th:field="*{stocks[__${iterStat.index}__].price}" step="0.01" readonly />
+            </td>
+            <td>
+                <input type="number" class="lot-column" th:field="*{stocks[__${iterStat.index}__].lotsize}" readonly />
+            </td>
+            <td>
+                <input type="number" id="customWeight-${iterStat.index}" class="purchased-column count-input"
+                       th:field="*{stocks[__${iterStat.index}__].customWeight}"
+                       min="0" required
+                       th:step="0.01" />
+            </td>
+            <td>
+                <input type="number" id="countInPortfolio-${iterStat.index}" class="purchased-column count-input"
+                       th:field="*{stocks[__${iterStat.index}__].countInPortfolio}"
+                       min="0" required
+                       th:step="*{stocks[__${iterStat.index}__].stepCountInPortfolio}" />
+            </td>
+            <td>
+                <input type="number" class="purchased-column" th:field="*{stocks[__${iterStat.index}__].costinPortfolio}" readonly />
+            </td>
+            <td>
+                <input type="number" class="weight-column" th:field="*{stocks[__${iterStat.index}__].indexImoex.weight}" step="0.01" readonly />
+            </td>
+            <td>
+                <input type="number" class="to-buy-count" th:field="*{stocks[__${iterStat.index}__].indexImoex.countToBuy}" readonly />
+            </td>
+            <td>
+                <input type="number" class="to-buy-column" th:field="*{stocks[__${iterStat.index}__].indexImoex.priceToBuy}" readonly />
+            </td>
+            <td>
+                <input type="number" class="compliance" th:field="*{stocks[__${iterStat.index}__].indexImoex.compliance}" readonly
+                       th:style="'background-color: ' + ${stock.indexImoex.complianceColor}" />
+            </td>
+            <td>
+                <input type="number" class="weight-column" th:field="*{stocks[__${iterStat.index}__].indexMoex10.weight}" step="0.01" readonly />
+            </td>
+            <td>
+                <input type="number" class="to-buy-count" th:field="*{stocks[__${iterStat.index}__].indexMoex10.countToBuy}" readonly />
+            </td>
+            <td>
+                <input type="number" class="to-buy-column" th:field="*{stocks[__${iterStat.index}__].indexMoex10.priceToBuy}" readonly />
+            </td>
+            <td>
+                <input type="number" class="compliance" th:field="*{stocks[__${iterStat.index}__].indexMoex10.compliance}" readonly
+                       th:style="'background-color: ' + ${stock.indexMoex10.complianceColor}" />
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</form>
+</body>
+</html>

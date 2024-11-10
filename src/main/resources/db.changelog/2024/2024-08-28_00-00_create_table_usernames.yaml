@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: sterkhovkv
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: usernames
+      changes:
+        - createTable:
+            tableName: usernames
+            columns:
+              - column:
+                  name: id
+                  type: INTEGER
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: name
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: money
+                  type: INTEGER
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropTable:
+            tableName: usernames

@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2
+      author: sterkhovkv
+      changes:
+        - insert:
+            tableName: usernames
+            columns:
+              - column:
+                  name: name
+                  value: "Investor"
+              - column:
+                  name: money
+                  value: 0
