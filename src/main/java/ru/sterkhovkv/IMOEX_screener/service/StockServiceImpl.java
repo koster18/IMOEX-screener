@@ -1,9 +1,9 @@
 package ru.sterkhovkv.IMOEX_screener.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import reactor.core.publisher.Flux;
 import ru.sterkhovkv.IMOEX_screener.dto.IndexData;
 import ru.sterkhovkv.IMOEX_screener.dto.StockTickerDTO;
 import ru.sterkhovkv.IMOEX_screener.dto.StockTickerFormDTO;
@@ -16,25 +16,17 @@ import ru.sterkhovkv.IMOEX_screener.util.Constants;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 @Slf4j
 public class StockServiceImpl implements StockService {
     private final StockTickerRepository stockTickerRepository;
     private final UserRepository userRepository;
     private final ApiMoexService apiMoexService;
-
-    public StockServiceImpl(StockTickerRepository stockTickerRepository, UserRepository userRepository, ApiMoexService apiMoexService) {
-        this.stockTickerRepository = stockTickerRepository;
-        this.userRepository = userRepository;
-        this.apiMoexService = apiMoexService;
-    }
 
     @Override
     public List<StockTickerFormDTO> loadStockTickersFromDB() {
@@ -93,9 +85,10 @@ public class StockServiceImpl implements StockService {
     @Transactional
     public void updateStockTickersDBIndexFromMoex() {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
-        apiMoexService.getAllStocksFromMoex()
-                .subscribe(stockTickers -> saveStockTickersToDb(stockTickers),
-                        error -> log.error(error.getMessage()));
+        saveStockTickersToDb(apiMoexService.fetchAllTickers());
+//        apiMoexService.getAllStocksFromMoex()
+//                .subscribe(stockTickers -> saveStockTickersToDb(stockTickers),
+//                        error -> log.error(error.getMessage()));
         log.info("Stock tickers from moex are updated in: {} ms", (System.currentTimeMillis() - timestamp.getTime()));
         clearBlankTickers();
     }
@@ -105,41 +98,50 @@ public class StockServiceImpl implements StockService {
     public void updateStockTickersDBPricefromMoex() {
         Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 
-        // Получаем все тикеры из БД и создаем Map для быстрого доступа
-        List<StockTicker> stockTickers = stockTickerRepository.findAll();
-        Map<String, StockTicker> tickerMap = stockTickers.stream()
-                .collect(Collectors.toMap(StockTicker::getTicker, Function.identity()));
+        List<StockTickerDTO> tickersFromDB = stockTickerRepository.findAll().stream()
+                .map(this::convertToDTO)
+                .toList();
+        List<StockTicker> tickersFromMoex = apiMoexService.refreshTickerPrices(tickersFromDB).stream()
+                .map(this::convertToEntity)
+                .toList();
+        stockTickerRepository.saveAll(tickersFromMoex);
+        log.info("Stock ticker prices updated in: {} ms", (System.currentTimeMillis() - timestamp.getTime()));
 
-        List<StockTickerDTO> newTickersToSave = new ArrayList<>();
-
-        Flux.fromIterable(stockTickers)
-                .flatMap(stockTicker -> {
-                    StockTickerDTO stockTickerDTO = convertToDTO(stockTicker);
-                    return apiMoexService.fillTickerPrice(stockTickerDTO)
-                            .map(priceResponse -> {
-                                stockTickerDTO.setPrice(priceResponse.getPrice());
-                                return stockTickerDTO;
-                            })
-                            .doOnError(error -> log.error("Error fetching price for {}: {}", stockTickerDTO.getTicker(), error.getMessage()));
-                })
-                .doOnNext(stockTickerDTO -> {
-                    StockTicker stockTicker = tickerMap.get(stockTickerDTO.getTicker());
-                    if (stockTicker != null) {
-                        stockTicker.setPrice(stockTickerDTO.getPrice());
-                    } else {
-                        log.warn("Ticker not found in DB: {}", stockTickerDTO.getTicker());
-                        newTickersToSave.add(stockTickerDTO);
-                    }
-                })
-                .doOnComplete(() -> {
-                    // Сохраняем все обновленные тикеры и новые тикеры за один раз
-                    stockTickerRepository.saveAll(tickerMap.values());
-                    if (!newTickersToSave.isEmpty()) {
-                        saveStockTickersToDb(newTickersToSave);
-                    }
-                    log.info("Stock ticker prices updated in: {} ms", (System.currentTimeMillis() - timestamp.getTime()));
-                })
-                .subscribe();
+//        // Получаем все тикеры из БД и создаем Map для быстрого доступа
+//        List<StockTicker> stockTickers = stockTickerRepository.findAll();
+//        Map<String, StockTicker> tickerMap = stockTickers.stream()
+//                .collect(Collectors.toMap(StockTicker::getTicker, Function.identity()));
+//
+//        List<StockTickerDTO> newTickersToSave = new ArrayList<>();
+//
+//        Flux.fromIterable(stockTickers)
+//                .flatMap(stockTicker -> {
+//                    StockTickerDTO stockTickerDTO = convertToDTO(stockTicker);
+//                    return apiMoexService.fillTickerPrice(stockTickerDTO)
+//                            .map(priceResponse -> {
+//                                stockTickerDTO.setPrice(priceResponse.getPrice());
+//                                return stockTickerDTO;
+//                            })
+//                            .doOnError(error -> log.error("Error fetching price for {}: {}", stockTickerDTO.getTicker(), error.getMessage()));
+//                })
+//                .doOnNext(stockTickerDTO -> {
+//                    StockTicker stockTicker = tickerMap.get(stockTickerDTO.getTicker());
+//                    if (stockTicker != null) {
+//                        stockTicker.setPrice(stockTickerDTO.getPrice());
+//                    } else {
+//                        log.warn("Ticker not found in DB: {}", stockTickerDTO.getTicker());
+//                        newTickersToSave.add(stockTickerDTO);
+//                    }
+//                })
+//                .doOnComplete(() -> {
+//                    // Сохраняем все обновленные тикеры и новые тикеры за один раз
+//                    stockTickerRepository.saveAll(tickerMap.values());
+//                    if (!newTickersToSave.isEmpty()) {
+//                        saveStockTickersToDb(newTickersToSave);
+//                    }
+//                    log.info("Stock ticker prices updated in: {} ms", (System.currentTimeMillis() - timestamp.getTime()));
+//                })
+//                .subscribe();
         clearBlankTickers();
     }
 
@@ -169,14 +171,14 @@ public class StockServiceImpl implements StockService {
     }
 
     private StockTickerDTO convertToDTO(StockTicker stockTicker) {
-        StockTickerDTO stockTickerDTO = new StockTickerDTO();
-        stockTickerDTO.setTicker(stockTicker.getTicker());
-        stockTickerDTO.setShortname(stockTicker.getShortname());
-        stockTickerDTO.setLotsize(stockTicker.getLotsize());
-        stockTickerDTO.setWeightImoex(stockTicker.getWeightImoex());
-        stockTickerDTO.setWeightMoex10(stockTicker.getWeightMoex10());
-        stockTickerDTO.setPrice(stockTicker.getPrice());
-        return stockTickerDTO;
+        return StockTickerDTO.builder()
+                .ticker(stockTicker.getTicker())
+                .shortname(stockTicker.getShortname())
+                .lotsize(stockTicker.getLotsize())
+                .weightImoex(stockTicker.getWeightImoex())
+                .weightMoex10(stockTicker.getWeightMoex10())
+                .price(stockTicker.getPrice())
+                .build();
     }
 
     @Override
@@ -217,7 +219,8 @@ public class StockServiceImpl implements StockService {
             stockTickerDTO.setLotsize(1);
             stockTickerDTO.setPrice(0);
         }
-        apiMoexService.fillTickerPrice(stockTickerDTO).subscribe();
+        stockTickerDTO = apiMoexService.refreshSingleTickerPrice(stockTickerDTO);
+        //apiMoexService.fillTickerPrice(stockTickerDTO).subscribe();
         if (stockTickerDTO.getShortname() == null || stockTickerDTO.getShortname().isEmpty()) {
             return false;
         } else {
