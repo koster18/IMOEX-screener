@@ -1,12 +1,14 @@
 package ru.sterkhovkv.IMOEX_screener.dto.frontDTO;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class FormTickerDTO {
     private String ticker;
     private String shortname;

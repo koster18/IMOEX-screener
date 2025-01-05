@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -55,19 +54,14 @@ public class TickerDataProviderImpl implements TickerDataProvider {
     }
 
     private StockTickerDTO enrichStockTickerDTO(StockTickerDTO stockTicker, TickerData tickerData) {
-        StockTickerDTO.StockTickerDTOBuilder builder = StockTickerDTO.builder()
-                .ticker(stockTicker.getTicker())
-                .shortname(stockTicker.getShortname())
-                .weightImoex(stockTicker.getWeightImoex())
-                .weightMoex10(stockTicker.getWeightMoex10());
-
-        if (tickerData != null) {
-            builder.lotsize(tickerData.lotsize())
-                    .shortname(tickerData.shortname())
-                    .price(tickerData.price());
+        if (tickerData == null) {
+            throw new TickerDataException("Тикер " + stockTicker.getTicker() + " не найден в ответе Мосбиржи");
         }
+        stockTicker.setLotsize(tickerData.lotsize());
+        stockTicker.setShortname(tickerData.shortname());
+        stockTicker.setPrice(tickerData.price());
 
-        return builder.build();
+        return stockTicker;
     }
 
     private StockTickerDTO mapToStockTickerDTO(ImoexIndexDTO.Analytics analytics) {
@@ -89,13 +83,13 @@ public class TickerDataProviderImpl implements TickerDataProvider {
 
     private static Map<String, TickerData> getTickerMap(TickerMoexDTO tickerMoexDTO) {
         if (tickerMoexDTO.getMarketdata().size() != tickerMoexDTO.getSecurities().size()) {
-            throw new TickerDataException("Invalid ticker data: Marketdata and Securities size are not equal");
+            throw new TickerDataException("Некоррекный ответ от Мосбиржи: количество тикеров не соответствует количеству цен");
         }
 
         return IntStream.range(0, tickerMoexDTO.getSecurities().size())
                 .mapToObj(i -> createTickerData(tickerMoexDTO, i))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toMap(TickerData::ticker, Function.identity()));
+                .collect(Collectors.toMap(TickerData::ticker, tickerData -> tickerData));
     }
 
     private static TickerData createTickerData(TickerMoexDTO tickerMoexDTO, int index) {

@@ -1,6 +1,5 @@
 package ru.sterkhovkv.IMOEX_screener.advice;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -9,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import ru.sterkhovkv.IMOEX_screener.dto.frontDTO.StockForm;
 import ru.sterkhovkv.IMOEX_screener.exception.FormArgumentException;
