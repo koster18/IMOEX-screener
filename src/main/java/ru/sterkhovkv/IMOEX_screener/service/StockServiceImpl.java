@@ -4,9 +4,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import ru.sterkhovkv.IMOEX_screener.dto.IndexData;
+import ru.sterkhovkv.IMOEX_screener.dto.frontDTO.IndexData;
 import ru.sterkhovkv.IMOEX_screener.dto.StockTickerDTO;
-import ru.sterkhovkv.IMOEX_screener.dto.StockTickerFormDTO;
+import ru.sterkhovkv.IMOEX_screener.dto.frontDTO.FormTickerDTO;
 import ru.sterkhovkv.IMOEX_screener.model.StockTicker;
 import ru.sterkhovkv.IMOEX_screener.model.User;
 import ru.sterkhovkv.IMOEX_screener.repository.StockTickerRepository;
@@ -29,7 +29,7 @@ public class StockServiceImpl implements StockService {
     private final ApiMoexService apiMoexService;
 
     @Override
-    public List<StockTickerFormDTO> loadStockTickersFromDB() {
+    public List<FormTickerDTO> loadStockTickersFromDB() {
         int money = userRepository.findByName(Constants.USERNAME).getMoney();
         return stockTickerRepository.findAll().stream()
                 .map(stockTicker -> createFormDTO(stockTicker, money))
@@ -42,8 +42,8 @@ public class StockServiceImpl implements StockService {
     }
 
 
-    private StockTickerFormDTO createFormDTO(StockTicker stockTicker, int money) {
-        StockTickerFormDTO tickerFormDTO = new StockTickerFormDTO();
+    private FormTickerDTO createFormDTO(StockTicker stockTicker, int money) {
+        FormTickerDTO tickerFormDTO = new FormTickerDTO();
         tickerFormDTO.setTicker(stockTicker.getTicker());
         tickerFormDTO.setShortname(stockTicker.getShortname());
         tickerFormDTO.setLotsize(stockTicker.getLotsize());
@@ -106,42 +106,6 @@ public class StockServiceImpl implements StockService {
                 .toList();
         stockTickerRepository.saveAll(tickersFromMoex);
         log.info("Stock ticker prices updated in: {} ms", (System.currentTimeMillis() - timestamp.getTime()));
-
-//        // Получаем все тикеры из БД и создаем Map для быстрого доступа
-//        List<StockTicker> stockTickers = stockTickerRepository.findAll();
-//        Map<String, StockTicker> tickerMap = stockTickers.stream()
-//                .collect(Collectors.toMap(StockTicker::getTicker, Function.identity()));
-//
-//        List<StockTickerDTO> newTickersToSave = new ArrayList<>();
-//
-//        Flux.fromIterable(stockTickers)
-//                .flatMap(stockTicker -> {
-//                    StockTickerDTO stockTickerDTO = convertToDTO(stockTicker);
-//                    return apiMoexService.fillTickerPrice(stockTickerDTO)
-//                            .map(priceResponse -> {
-//                                stockTickerDTO.setPrice(priceResponse.getPrice());
-//                                return stockTickerDTO;
-//                            })
-//                            .doOnError(error -> log.error("Error fetching price for {}: {}", stockTickerDTO.getTicker(), error.getMessage()));
-//                })
-//                .doOnNext(stockTickerDTO -> {
-//                    StockTicker stockTicker = tickerMap.get(stockTickerDTO.getTicker());
-//                    if (stockTicker != null) {
-//                        stockTicker.setPrice(stockTickerDTO.getPrice());
-//                    } else {
-//                        log.warn("Ticker not found in DB: {}", stockTickerDTO.getTicker());
-//                        newTickersToSave.add(stockTickerDTO);
-//                    }
-//                })
-//                .doOnComplete(() -> {
-//                    // Сохраняем все обновленные тикеры и новые тикеры за один раз
-//                    stockTickerRepository.saveAll(tickerMap.values());
-//                    if (!newTickersToSave.isEmpty()) {
-//                        saveStockTickersToDb(newTickersToSave);
-//                    }
-//                    log.info("Stock ticker prices updated in: {} ms", (System.currentTimeMillis() - timestamp.getTime()));
-//                })
-//                .subscribe();
         clearBlankTickers();
     }
 
@@ -183,7 +147,7 @@ public class StockServiceImpl implements StockService {
 
     @Override
     @Transactional
-    public void updateStockTickersFromUser(List<StockTickerFormDTO> stockTickers) {
+    public void updateStockTickersFromUser(List<FormTickerDTO> stockTickers) {
         List<StockTicker> stockTickersToUpdate = stockTickers.stream()
                 .map(this::updateTickerCountInPortfolio)
                 .filter(ticker -> ticker != null)
@@ -194,7 +158,7 @@ public class StockServiceImpl implements StockService {
         }
     }
 
-    private StockTicker updateTickerCountInPortfolio(StockTickerFormDTO stockTicker) {
+    private StockTicker updateTickerCountInPortfolio(FormTickerDTO stockTicker) {
         StockTicker stockTickerDB = stockTickerRepository.findFirstByTicker(stockTicker.getTicker());
         if (stockTickerDB != null) {
             stockTickerDB.setCountInPortfolio(stockTicker.getCountInPortfolio());

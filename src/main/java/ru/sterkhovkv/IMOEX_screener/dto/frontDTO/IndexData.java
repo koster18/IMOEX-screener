@@ -1,4 +1,4 @@
-package ru.sterkhovkv.IMOEX_screener.dto;
+package ru.sterkhovkv.IMOEX_screener.dto.frontDTO;
 
 
 import lombok.AllArgsConstructor;

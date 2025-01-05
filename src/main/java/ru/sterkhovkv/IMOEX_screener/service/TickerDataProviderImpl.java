@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.sterkhovkv.IMOEX_screener.dto.MoexDTO.ImoexIndexDTO;
 import ru.sterkhovkv.IMOEX_screener.dto.MoexDTO.Moex10IndexDTO;
-import ru.sterkhovkv.IMOEX_screener.dto.MoexDTO.TickerData;
+import ru.sterkhovkv.IMOEX_screener.dto.TickerData;
 import ru.sterkhovkv.IMOEX_screener.dto.MoexDTO.TickerMoexDTO;
 import ru.sterkhovkv.IMOEX_screener.dto.StockTickerDTO;
 import ru.sterkhovkv.IMOEX_screener.exception.TickerDataException;
