@@ -1,74 +1,43 @@
 package ru.sterkhovkv.IMOEX_screener.controller;
 
-import jakarta.servlet.http.HttpSession;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import ru.sterkhovkv.IMOEX_screener.dto.StockForm;
-import ru.sterkhovkv.IMOEX_screener.service.ApiMoexService;
-import ru.sterkhovkv.IMOEX_screener.service.StockService;
+import org.springframework.web.bind.annotation.SessionAttributes;
+import ru.sterkhovkv.IMOEX_screener.dto.frontDTO.StockForm;
+import ru.sterkhovkv.IMOEX_screener.service.StockFormActionService;
+
+import static ru.sterkhovkv.IMOEX_screener.dto.endpoints.Endpoints.STOCK_ENDPOINT;
 
 
 @Controller
+@SessionAttributes("stockForm")
+@RequiredArgsConstructor
 public class StockController {
-    private final StockService stockService;
-
-    @Autowired
-    public StockController(ApiMoexService apiMoexService, StockService stockService) {
-        this.stockService = stockService;
-    }
+    private final StockFormActionService stockFormActionService;
 
     @ModelAttribute("stockForm")
     public StockForm populateStockForm() {
-        return createStockForm();
+        return stockFormActionService.createStockForm();
     }
 
-    private StockForm createStockForm() {
-        StockForm stockForm = new StockForm();
-        stockForm.setMoney(stockService.getMoneyFromDB());
-        stockForm.setCostInPortfolio(stockService.getCostinPortfolio());
-        stockForm.setStocks(stockService.loadStockTickersFromDB());
-        return stockForm;
-    }
-
-    @GetMapping("/stocks")
-    public String showStocks(Model model, HttpSession session) {
-        StockForm stockForm = (StockForm) session.getAttribute("stockForm");
-        if (stockForm == null) {
-            stockForm = createStockForm();
-            session.setAttribute("stockForm", stockForm);
-        } else {
-            stockForm.setMoney(stockService.getMoneyFromDB());
-            stockForm.setCostInPortfolio(stockService.getCostinPortfolio());
-            stockForm.setStocks(stockService.loadStockTickersFromDB());
-        }
+    @GetMapping(STOCK_ENDPOINT)
+    public String showStocks(Model model, @ModelAttribute("stockForm") StockForm stockForm) {
+        stockFormActionService.updateStockForm(stockForm);
         model.addAttribute("stockForm", stockForm);
         return "stocks";
     }
 
-    @PostMapping("/stocks")
-    public String calculateWeights(@ModelAttribute StockForm stockForm,
+    @PostMapping(STOCK_ENDPOINT)
+    public String calculateWeights(@ModelAttribute("stockForm") StockForm stockForm,
                                    @RequestParam("action") String action,
                                    Model model) {
-        if ("save".equals(action)) {
-            stockService.refreshMoneyFromUser(stockForm.getMoney());
-            stockService.updateStockTickersFromUser(stockForm.getStocks());
-        } else if ("update".equals(action)) {
-            stockService.updateStockTickersDBIndexFromMoex();
-        } else if ("refresh_prices".equals(action)) {
-            stockService.updateStockTickersDBPricefromMoex();
-        } else if ("add_ticker".equals(action)) {
-            boolean isAdded = stockService.addNewTicker(stockForm.getNewTicker());
-            if (!isAdded) {
-                model.addAttribute("errorMessage", "Тикер не найден или не может быть добавлен.");
-            }
-        }
-        stockForm.setCostInPortfolio(stockService.getCostinPortfolio());
-        stockForm.setStocks(stockService.loadStockTickersFromDB());       ;
+        stockFormActionService.handleAction(stockForm, action);
+        stockFormActionService.updateStockForm(stockForm);
         model.addAttribute("stockForm", stockForm);
         return "stocks";
     }

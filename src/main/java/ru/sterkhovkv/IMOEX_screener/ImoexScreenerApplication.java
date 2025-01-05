@@ -1,6 +1,5 @@
 package ru.sterkhovkv.IMOEX_screener;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
@@ -19,16 +18,11 @@ public class ImoexScreenerApplication {
 	}
 
 	@Bean
-	public ObjectMapper objectMapper() {
-		return new ObjectMapper();
-	}
-
-	@Bean
 	public CommandLineRunner commandLineRunner(StockService stockService) {
 		return args -> {
 			Timestamp timestamp = new Timestamp(System.currentTimeMillis());
 			stockService.updateStockTickersDBIndexFromMoex();
-			log.info("Load completed in {} ms", (System.currentTimeMillis() - timestamp.getTime()));
+			log.info("Загрузка индексов и цен выполнена за: {} мс", (System.currentTimeMillis() - timestamp.getTime()));
 		};
 	}
 }

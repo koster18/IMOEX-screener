@@ -1,13 +1,15 @@
-package ru.sterkhovkv.IMOEX_screener.dto;
+package ru.sterkhovkv.IMOEX_screener.dto.frontDTO;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class StockTickerFormDTO {
+@Builder
+public class FormTickerDTO {
     private String ticker;
     private String shortname;
     private int lotsize;

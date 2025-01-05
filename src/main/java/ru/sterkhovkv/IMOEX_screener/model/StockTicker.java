@@ -19,7 +19,7 @@ public class StockTicker {
     @Column(name = "id")
     private Integer Id;
 
-    @Column(name = "ticker", nullable = false, length = 50)
+    @Column(name = "ticker", nullable = false, length = 50, unique = true)
     private String ticker;
 
     @Column(name = "shortname")

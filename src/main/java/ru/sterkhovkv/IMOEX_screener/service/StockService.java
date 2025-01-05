@@ -1,17 +1,26 @@
 package ru.sterkhovkv.IMOEX_screener.service;
 
-import ru.sterkhovkv.IMOEX_screener.dto.StockTickerFormDTO;
+import org.springframework.transaction.annotation.Transactional;
+import ru.sterkhovkv.IMOEX_screener.dto.frontDTO.FormTickerDTO;
 
 import java.util.List;
 
 public interface StockService {
-    List<StockTickerFormDTO> loadStockTickersFromDB();
+
     void updateStockTickersDBIndexFromMoex();
+
     void updateStockTickersDBPricefromMoex();
-    void updateStockTickersFromUser(List<StockTickerFormDTO> stockTickers);
-    boolean addNewTicker(String newTicker);
+
+    void updateStockTickersFromUser(List<FormTickerDTO> stockTickers);
+
+    void addNewTicker(String newTicker);
+
     void clearBlankTickers();
+
+    @Transactional
     void refreshMoneyFromUser(int money);
+
     int getMoneyFromDB();
+
     double getCostinPortfolio();
 }
